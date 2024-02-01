@@ -23,7 +23,14 @@ public class FluidRenderer : MonoBehaviour
                 for (int z = 0; z < fluidSim.gridBoundsXZ; z++)
                 {
                     if(MakeRenderBoxes)
-                        renderGrid[x,y,z] = Instantiate(prefab, new Vector3(x, y, z), Quaternion.identity, this.transform).transform;
+                    {
+                        renderGrid[x, y, z] = Instantiate(prefab, new Vector3(x, y, z), Quaternion.identity, this.transform).transform;
+                        var SB = renderGrid[x, y, z].GetComponent<SelectionBase>();
+                        SB.xyz.x = x;
+                        SB.xyz.y = y;
+                        SB.xyz.z = z;
+                    }
+                        
                 }
                     
         

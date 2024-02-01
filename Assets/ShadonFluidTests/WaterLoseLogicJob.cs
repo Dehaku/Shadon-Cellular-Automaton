@@ -9,7 +9,7 @@ using UnityEngine;
 // Burst Manual; https://docs.unity3d.com/Packages/com.unity.burst@1.2/manual/index.html
 
 [BurstCompile]
-public struct WaterLogicJob : IJobParallelFor
+public struct WaterLoseLogicJob : IJobParallelFor
 {
     [ReadOnly] public NativeArray<int> originalCellGrid;
     [ReadOnly] public int gridBoundsXZ;
@@ -21,7 +21,7 @@ public struct WaterLogicJob : IJobParallelFor
     [ReadOnly] public bool leftRight;
     [ReadOnly] public bool forwardBack;
 
-    [WriteOnly] public NativeArray<int> outputCellGrid; // write only?
+    public NativeArray<int> outputCellGrid; // write only?
 
     public int IX(int x, int y, int z) 
     {
@@ -70,36 +70,38 @@ public struct WaterLogicJob : IJobParallelFor
 
         if(upDown)
         {
-            if (thisCellDensity > 0)
+            // If we have room, If we're not Top, if above us has some, fill ourselves.
+            //if (densityToGive < maxDensity)
+            //{
+            //    if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
+            //    {
+            //        if (originalCellGrid[cellUp] > 1)
+            //        {
+            //            outputCellDensity += FlowRate; // Only affect current cell, read neighbor cells.
+            //        }
+            //    }
+            //}
+            
+
+            // If we have some, If not Bottom, If room below us, drain ourselves.
+            if (densityToGive > 0)
             {
-
-                //if (thisCellDensity == 1)
-                  //  Debug.Log("I have 1 at " + to3DID);
-
                 if (y > 0)
                 {
                     if (originalCellGrid[cellDown] < maxDensity)
                     {
-                        outputCellDensity -= FlowRate*1;
-                        densityToGive -= 1;
-                    }
-                }
-            }
-            //Debug.LogWarning("Problem is probably here.");
-            if (thisCellDensity < maxDensity)
-            {
-                if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
-                {
-                    if (originalCellGrid[cellUp] > 0)
-                    {
-                        outputCellDensity += FlowRate; // Only affect current cell, read neighbor cells.
+                        outputCellDensity -= FlowRate;
+                        densityToGive -= 1; // Only reduce this, never raise it. It's a buffer for how much can be lost per tick.
                     }
                 }
             }
 
             
-
             
+
+
+
+
         }
 
         

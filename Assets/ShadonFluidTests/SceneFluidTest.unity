@@ -393,6 +393,9 @@ MonoBehaviour:
   jobsPerThread: 128
   printDebugTime: 0
   randomSeed: 137390076
+  yLevelCellFill: 2
+  modifyCellXYZ: {x: 7, y: 3, z: 0}
+  modifyCellValue: 55
 --- !u!4 &589917916
 Transform:
   m_ObjectHideFlags: 0

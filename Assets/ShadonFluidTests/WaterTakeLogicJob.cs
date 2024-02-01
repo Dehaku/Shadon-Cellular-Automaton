@@ -9,7 +9,7 @@ using UnityEngine;
 // Burst Manual; https://docs.unity3d.com/Packages/com.unity.burst@1.2/manual/index.html
 
 [BurstCompile]
-public struct WaterLogicJob : IJobParallelFor
+public struct WaterTakeLogicJob : IJobParallelFor
 {
     [ReadOnly] public NativeArray<int> originalCellGrid;
     [ReadOnly] public int gridBoundsXZ;
@@ -70,27 +70,25 @@ public struct WaterLogicJob : IJobParallelFor
 
         if(upDown)
         {
+            /*
             if (thisCellDensity > 0)
             {
-
-                //if (thisCellDensity == 1)
-                  //  Debug.Log("I have 1 at " + to3DID);
-
                 if (y > 0)
                 {
                     if (originalCellGrid[cellDown] < maxDensity)
                     {
-                        outputCellDensity -= FlowRate*1;
+                        outputCellDensity -= FlowRate;
                         densityToGive -= 1;
                     }
                 }
             }
+            */
             //Debug.LogWarning("Problem is probably here.");
             if (thisCellDensity < maxDensity)
             {
                 if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
                 {
-                    if (originalCellGrid[cellUp] > 0)
+                    if (originalCellGrid[cellUp] > 1)
                     {
                         outputCellDensity += FlowRate; // Only affect current cell, read neighbor cells.
                     }

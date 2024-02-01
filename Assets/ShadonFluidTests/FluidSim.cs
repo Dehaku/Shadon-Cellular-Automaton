@@ -56,11 +56,15 @@ public class FluidSim : MonoBehaviour
     public int alternateAmount = 2;
     public int alternateAmountCap = 100;
 
-    NativeArray<int> cellGrid, newCellGrid;
+    NativeArray<int> cellGrid, newCellGrid, cellTransfer;
     public int jobsPerThread = 64;
     public bool printDebugTime = false;
 
     public int randomSeed = 42;
+    public int yLevelCellFill = 2;
+
+    public Vector3Int modifyCellXYZ;
+    public int modifyCellValue;
 
 
     int IX(int x, int y, int z)
@@ -71,6 +75,16 @@ public class FluidSim : MonoBehaviour
         return x + y * gridBoundsXZ + z * gridBoundsXZ * gridBoundsY;
         // If I remember correctly, the Clamp was very expensive.
         //return Mathf.Clamp(x + y * gridBoundsSingle + z * gridBoundsSingle * gridBoundsSingle, 0, gridBoundsSingle * gridBoundsSingle * gridBoundsSingle);
+    }
+
+    int IX(Vector3Int xyz)
+    {
+        return xyz.x + xyz.y * gridBoundsXZ + xyz.z * gridBoundsXZ * gridBoundsY;
+    }
+
+    int IX(int3 xyz)
+    {
+        return xyz.x + xyz.y * gridBoundsXZ + xyz.z * gridBoundsXZ * gridBoundsY;
     }
 
 
@@ -90,7 +104,7 @@ public class FluidSim : MonoBehaviour
 
         */
 
-        public int3 to3D(int idx)
+    public int3 to3D(int idx)
     {
         int z = idx / (gridBoundsXZ * gridBoundsY);
         idx -= (z * gridBoundsXZ * gridBoundsY);
@@ -103,6 +117,7 @@ public class FluidSim : MonoBehaviour
     {
         newCellGrid.Dispose();
         cellGrid.Dispose();
+        cellTransfer.Dispose();
     }
 
     // Start is called before the first frame update
@@ -121,6 +136,7 @@ public class FluidSim : MonoBehaviour
         // ================ v Array Definitions v ==================
         cellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
         newCellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
+        cellTransfer = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
         // ==================================
 
         if (randomizeOnStart)
@@ -219,6 +235,32 @@ public class FluidSim : MonoBehaviour
     }
 
     [EButton]
+    public void fillYLevelCells()
+    {
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
+        {
+            if(to3D(i).y == yLevelCellFill)
+            {
+                cellGrid[i] = alternateAmountCap;
+            }
+            else
+            {
+                cellGrid[i] = 0;
+            }
+        }
+    }
+
+    [EButton]
+    public void modifyCellAtXYZ()
+    {
+        Debug.Log("Cell:" + cellGrid[IX(modifyCellXYZ)] + ", " + cellGrid[IX(to3D(IX(modifyCellXYZ)))] + ", at " + to3D(IX(modifyCellXYZ)));
+
+
+        cellGrid[IX(modifyCellXYZ)] = modifyCellValue;
+        
+    }
+
+    [EButton]
     public int SumOfDensity()
     {
         int totalDensity = 0;
@@ -240,7 +282,59 @@ public class FluidSim : MonoBehaviour
     [EButton]
     void MultithreadedMadness()
     {
+        /*
 
+        WaterTakeLogicJob waterTakeLogicJob = new WaterTakeLogicJob()
+        {
+            originalCellGrid = cellGrid,
+            gridBoundsXZ = this.gridBoundsXZ,
+            gridBoundsY = this.gridBoundsY,
+            Gravity = this.Gravity,
+            maxDensity = this.maxDensity,
+            FlowRate = flowRate,
+            upDown = this.upDown,
+            leftRight = this.leftRight,
+            forwardBack = this.forwardBack,
+
+            outputCellGrid = newCellGrid,
+        };
+
+        JobHandle waterTakeLogicJobHandle = waterTakeLogicJob.Schedule(cellGrid.Length, jobsPerThread);
+        waterTakeLogicJobHandle.Complete();
+
+        
+        
+        cellTransfer.CopyFrom(waterTakeLogicJob.outputCellGrid);
+
+        //newCellGrid = waterTakeLogicJob.outputCellGrid;
+        //cellGrid.CopyFrom(newCellGrid);
+
+        WaterLoseLogicJob waterLoseLogicJob = new WaterLoseLogicJob()
+        {
+            originalCellGrid = cellTransfer,
+            gridBoundsXZ = this.gridBoundsXZ,
+            gridBoundsY = this.gridBoundsY,
+            Gravity = this.Gravity,
+            maxDensity = this.maxDensity,
+            FlowRate = flowRate,
+            upDown = this.upDown,
+            leftRight = this.leftRight,
+            forwardBack = this.forwardBack,
+
+            outputCellGrid = newCellGrid,
+        };
+
+        JobHandle waterLoseLogicJobHandle = waterLoseLogicJob.Schedule(cellGrid.Length, jobsPerThread);
+        waterLoseLogicJobHandle.Complete();
+
+        newCellGrid = waterLoseLogicJob.outputCellGrid;
+        cellGrid.CopyFrom(newCellGrid);
+
+        */
+
+
+
+        
         WaterLogicJob waterLogicJob = new WaterLogicJob()
         {
             originalCellGrid = cellGrid,
@@ -259,12 +353,10 @@ public class FluidSim : MonoBehaviour
         JobHandle waterLogicJobHandle = waterLogicJob.Schedule(cellGrid.Length, jobsPerThread);
         waterLogicJobHandle.Complete();
 
-        //int readIdx = thirtythirtythirty;
-        //Debug.Log(cellGrid[readIdx] + " : " + waterLogicJob.originalCellGrid[readIdx] + " : " +
-        //    newCellGrid[readIdx] + " : " + waterLogicJob.outputCellGrid[readIdx]);
-
         newCellGrid = waterLogicJob.outputCellGrid;
         cellGrid.CopyFrom(newCellGrid);
+
+        
     }
 
     //int thirtythirtythirty = 0;
@@ -272,10 +364,10 @@ public class FluidSim : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //float timePassed;
-        //float time = Time.realtimeSinceStartup;
-        Stopwatch stopwatch = Stopwatch.StartNew();
-        stopwatch.Start();
+        float timePassed;
+        float time = Time.realtimeSinceStartup;
+        //Stopwatch stopwatch = Stopwatch.StartNew();
+        //stopwatch.Start();
 
 
         
@@ -298,14 +390,16 @@ public class FluidSim : MonoBehaviour
             MultithreadedMadness();
         }
 
-        stopwatch.Stop();
-        long elapsedTimeMilliseconds = stopwatch.ElapsedMilliseconds;
-        long elapsedTicks = stopwatch.ElapsedTicks;
+        //stopwatch.Stop();
+        //long elapsedTimeMilliseconds = stopwatch.ElapsedMilliseconds;
+        //long elapsedTicks = stopwatch.ElapsedTicks;
         //print($"Elapsed time in milliseconds: {elapsedTimeMilliseconds}");
-        if(printDebugTime)
-            print($"Elapsed ticks: {elapsedTicks}, 100,000 = ms");
-        //timePassed = Time.realtimeSinceStartup - time;
-        //Debug.Log("Time(ms): " + (timePassed*1000f));
+        timePassed = Time.realtimeSinceStartup - time;
+        if (printDebugTime)
+            Debug.Log("Time(ms): " + (timePassed * 1000f));
+        //print($"Elapsed ticks: {elapsedTicks}, 100,000 = ms");
+
+        //
     }
 
     public float GetCellValue(int x, int y, int z)
