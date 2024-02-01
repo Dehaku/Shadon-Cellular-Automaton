@@ -373,11 +373,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46bc96983a8ee704c908917b8f711ccf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridBounds: {x: 96, y: 96, z: 96}
-  gridBoundsSingle: 32
+  gridBoundsSingle: 3
   Viscosity: 0.5
   Gravity: -9.8
-  flowRate: 5
+  flowRate: 1
   RunSinglethreadSimulation: 0
   RunMultithreadSimulation: 1
   upDown: 1
@@ -389,8 +388,6 @@ MonoBehaviour:
   alternateOnStart: 1
   alternateAmount: 3
   alternateAmountCap: 100
-  fluidGridSingle: []
-  newFluidGridSingle: []
   jobsPerThread: 64
   printDebugTime: 1
 --- !u!4 &589917916
@@ -422,7 +419,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   fluidSim: {fileID: 589917915}
   text: {fileID: 937364889}
-  updateTextEveryFrame: 0
+  updateTextEveryFrame: 1
 --- !u!1 &911309104
 GameObject:
   m_ObjectHideFlags: 0
