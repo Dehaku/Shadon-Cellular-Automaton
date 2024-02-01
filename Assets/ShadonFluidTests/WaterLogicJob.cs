@@ -19,16 +19,13 @@ public struct WaterLogicJob : IJobParallelFor
     [ReadOnly] public bool leftRight;
     [ReadOnly] public bool forwardBack;
 
-    int to3dCache;
-
-    public NativeArray<int> outputCellGrid; // write only?
+    [WriteOnly] public NativeArray<int> outputCellGrid; // write only?
 
     public int IX(int x, int y, int z) 
     {
         return x + y * gridBoundsXZ + z * gridBoundsXZ * gridBoundsY;
     }
 
-    
     public int3 to3D(int idx)
     {
         int z = idx / (gridBoundsXZ * gridBoundsY);
@@ -37,16 +34,6 @@ public struct WaterLogicJob : IJobParallelFor
         int x = idx % gridBoundsXZ;
         return new int3(x, y, z);
     }
-
-    // public int[] to3D(int idx)
-        //{
-        //    final int z = idx / (xMax * yMax);
-        //    idx -= (z * xMax * yMax);
-        //    final int y = idx / xMax;
-        //    final int x = idx % xMax;
-        //    return new int[] { x, y, z };
-        //}
-
 
     public void Execute(int index)
     {

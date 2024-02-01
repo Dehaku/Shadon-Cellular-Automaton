@@ -89,14 +89,12 @@ public class FluidSim : MonoBehaviour
     // Start is called before the first frame update
     void Awake()
     {
-        Debug.Log("TODO: Figure out to3D math to squish the bounding box. 96x32x96 is ideal.");
         Debug.Log("TODO: Move .complete and such into LateUpdate or even next frame.");
         Debug.Log("TODO: Look into turning this into interlinking chunks.");
         Debug.Log("TODO: Figure out how to manage size better, maybe look at voxel datastructures, as they can have way more points.");
         Debug.Log("Awakening fluid sim");
 
         // ================ v Array Definitions v ==================
-        Debug.LogWarning("Is the problem here?");
         cellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
         newCellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
         // ==================================
@@ -241,47 +239,6 @@ public class FluidSim : MonoBehaviour
         if(printDebugTime)
             Debug.Log("Time(ms): " + (timePassed*1000f));
     }
-
-
-
-
-    void SingleDimensionArray()
-    {
-        /*
-        public int to1D(int x, int y, int z)
-        {
-            return (z * xMax * yMax) + (y * xMax) + x;
-        }
-
-        public int[] to3D(int idx)
-        {
-            final int z = idx / (xMax * yMax);
-            idx -= (z * xMax * yMax);
-            final int y = idx / xMax;
-            final int x = idx % xMax;
-            return new int[] { x, y, z };
-        }
-        */
-
-
-        // Where's the zmax? I need to learn this better.
-        //public int to1D(int x, int y, int z) 
-        //{
-        //    return (z * xMax * yMax) + (y * xMax) + x;
-        //}
-
-        //Need to make a version of this with a zMax... or is it built in? I need to learn this better.
-        //public int[] to3D(int idx)
-        //{
-        //    final int z = idx / (xMax * yMax);
-        //    idx -= (z * xMax * yMax);
-        //    final int y = idx / xMax;
-        //    final int x = idx % xMax;
-        //    return new int[] { x, y, z };
-        //}
-
-    }
-
 
     public float GetCellValue(int x, int y, int z)
     {
