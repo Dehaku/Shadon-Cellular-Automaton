@@ -16,10 +16,10 @@ public class FluidRenderer : MonoBehaviour
     void Start() 
     {
         Debug.Log("Starting Render Sim(Replace with single array");
-        renderGrid = new Transform[fluidSim.gridBoundsSingle, fluidSim.gridBoundsSingle, fluidSim.gridBoundsSingle];
-        for (int x = 0; x < fluidSim.gridBoundsSingle; x++)
-            for (int y = 0; y < fluidSim.gridBoundsSingle; y++)
-                for (int z = 0; z < fluidSim.gridBoundsSingle; z++)
+        renderGrid = new Transform[fluidSim.gridBoundsXZ, fluidSim.gridBoundsY, fluidSim.gridBoundsXZ];
+        for (int x = 0; x < fluidSim.gridBoundsXZ; x++)
+            for (int y = 0; y < fluidSim.gridBoundsY; y++)
+                for (int z = 0; z < fluidSim.gridBoundsXZ; z++)
                 {
                     if(MakeRenderBoxes)
                         renderGrid[x,y,z] = Instantiate(prefab, new Vector3(x, y, z), Quaternion.identity, this.transform).transform;
@@ -41,9 +41,9 @@ public class FluidRenderer : MonoBehaviour
             return;
 
         float waterValue = 0; // Reducing how often we create stuff. No idea if this noticable helps though.
-        for (int x = 0; x < fluidSim.gridBoundsSingle; x++)
-            for (int y = 0; y < fluidSim.gridBoundsSingle; y++)
-                for (int z = 0; z < fluidSim.gridBoundsSingle; z++)
+        for (int x = 0; x < fluidSim.gridBoundsXZ; x++)
+            for (int y = 0; y < fluidSim.gridBoundsY; y++)
+                for (int z = 0; z < fluidSim.gridBoundsXZ; z++)
                 {
                     waterValue = fluidSim.GetCellValue(x, y, z);
                     if (waterValue == 0)

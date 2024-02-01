@@ -10,7 +10,8 @@ using UnityEngine;
 public struct WaterLogicJob : IJobParallelFor
 {
     [ReadOnly] public NativeArray<int> originalCellGrid;
-    [ReadOnly] public int gridBounds;
+    [ReadOnly] public int gridBoundsXZ;
+    [ReadOnly] public int gridBoundsY;
     [ReadOnly] public float Gravity;
     [ReadOnly] public int FlowRate;
     [ReadOnly] public int maxDensity;
@@ -24,16 +25,16 @@ public struct WaterLogicJob : IJobParallelFor
 
     public int IX(int x, int y, int z) 
     {
-        return x + y * gridBounds + z * gridBounds * gridBounds;
+        return x + y * gridBoundsXZ + z * gridBoundsXZ * gridBoundsY;
     }
 
     
     public int3 to3D(int idx)
     {
-        int z = idx / (gridBounds * gridBounds);
-        idx -= (z * gridBounds * gridBounds);
-        int y = idx / gridBounds;
-        int x = idx % gridBounds; 
+        int z = idx / (gridBoundsXZ * gridBoundsY);
+        idx -= (z * gridBoundsXZ * gridBoundsY);
+        int y = idx / gridBoundsXZ;
+        int x = idx % gridBoundsXZ;
         return new int3(x, y, z);
     }
 
@@ -98,7 +99,7 @@ public struct WaterLogicJob : IJobParallelFor
 
             if (thisCellDensity < maxDensity)
             {
-                if (y < gridBounds - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
+                if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
                 {
                     if (originalCellGrid[cellUp] > 1)
                     {
@@ -136,7 +137,7 @@ public struct WaterLogicJob : IJobParallelFor
 
             if (thisCellDensity < maxDensity)
             {
-                if (x < gridBounds - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
+                if (x < gridBoundsXZ - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
                 {
                     if (originalCellGrid[IX(x+1, y, z)] > outputCellDensity) 
                     {

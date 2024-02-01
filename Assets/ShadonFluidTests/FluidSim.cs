@@ -6,10 +6,19 @@ using Unity.Jobs;
 using UnityEngine;
 using Unity.Collections;
 
+// Flattening/Unflattening Arrays: https://stackoverflow.com/questions/21596373/compute-shaders-input-3d-array-of-floats
+// Check out the above for which coordinate system is faster.
+// 3d Volumetric: https://github.com/songshibo/UnityFluidDynamics/tree/main
+// 
+// GPU: https://github.com/FlanOfFlans/Just-Smoke-No-Mirrors/tree/master
+// Haven't checked yet: https://github.com/J-Ponzo/densityBasedFluidSimulation
+
+
 [BurstCompile]
 public class FluidSim : MonoBehaviour
 {
-    public int gridBoundsSingle = 96;
+    public int gridBoundsXZ = 96;
+    public int gridBoundsY = 96;
 
     public float Viscosity = 0.5f; // How much of a cell's liquid moves under influence.
     public float Gravity = -9.8f;
@@ -37,18 +46,37 @@ public class FluidSim : MonoBehaviour
 
     int IX(int x, int y, int z)
     {
-        return x + y * gridBoundsSingle + z * gridBoundsSingle * gridBoundsSingle;
+        // [x+y*world.maxSize+z*world.maxSize*world.maxSizeY
+        // x + (y * maxX) + (z * maxX * maxY);
+
+        return x + y * gridBoundsXZ + z * gridBoundsXZ * gridBoundsY;
         // If I remember correctly, the Clamp was very expensive.
         //return Mathf.Clamp(x + y * gridBoundsSingle + z * gridBoundsSingle * gridBoundsSingle, 0, gridBoundsSingle * gridBoundsSingle * gridBoundsSingle);
     }
 
 
-    public int3 to3D(int idx)
+    /*
+    public int to1D(int x, int y, int z)
     {
-        int z = idx / (gridBoundsSingle * gridBoundsSingle);
-        idx -= (z * gridBoundsSingle * gridBoundsSingle);
-        int y = idx / gridBoundsSingle;
-        int x = idx % gridBoundsSingle;
+        return (z * xMax * yMax) + (y * xMax) + x;
+    }
+
+    public int[] to3D(int idx)
+    {
+        final int z = idx / (xMax * yMax);
+        idx -= (z * xMax * yMax);
+        final int y = idx / xMax;
+        final int x = idx % xMax;
+        return new int[] { x, y, z };
+
+        */
+
+        public int3 to3D(int idx)
+    {
+        int z = idx / (gridBoundsXZ * gridBoundsY);
+        idx -= (z * gridBoundsXZ * gridBoundsY);
+        int y = idx / gridBoundsXZ;
+        int x = idx % gridBoundsXZ;
         return new int3(x, y, z);
     }
 
@@ -68,8 +96,9 @@ public class FluidSim : MonoBehaviour
         Debug.Log("Awakening fluid sim");
 
         // ================ v Array Definitions v ==================
-        cellGrid = new NativeArray<int>(gridBoundsSingle * gridBoundsSingle * gridBoundsSingle,Allocator.Persistent);
-        newCellGrid = new NativeArray<int>(gridBoundsSingle * gridBoundsSingle * gridBoundsSingle, Allocator.Persistent);
+        Debug.LogWarning("Is the problem here?");
+        cellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
+        newCellGrid = new NativeArray<int>(gridBoundsXZ * gridBoundsY * gridBoundsXZ, Allocator.Persistent);
         // ==================================
 
         if (randomizeOnStart)
@@ -98,7 +127,7 @@ public class FluidSim : MonoBehaviour
     [EButton.BeginHorizontal("Cell Level"), EButton]
     void randomizeCells()
     {
-        for (int i = 0; i < gridBoundsSingle * gridBoundsSingle * gridBoundsSingle; i++)
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
             //cellGrid[i] = UnityEngine.Random.Range(0, 101);
             cellGrid[i] = UnityEngine.Random.Range(0, 21)*5;
@@ -108,7 +137,7 @@ public class FluidSim : MonoBehaviour
     [EButton]
     void iterateCells()
     {
-        for (int i = 0; i < gridBoundsSingle * gridBoundsSingle * gridBoundsSingle; i++)
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
 
             cellGrid[i] = Mathf.Clamp(1 * (i % 32), 0, 100);
@@ -118,7 +147,7 @@ public class FluidSim : MonoBehaviour
     [EButton]
     void randomizeAndIterateCells()
     {
-        for (int i = 0; i < gridBoundsSingle * gridBoundsSingle * gridBoundsSingle; i++)
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
 
             cellGrid[i] = Mathf.Clamp(1 * (i % 32), 0, 100) * UnityEngine.Random.Range(1, 3);
@@ -127,7 +156,7 @@ public class FluidSim : MonoBehaviour
     [EButton, EButton.EndHorizontal]
     void alternateCells()
     {
-        for (int i = 0; i < gridBoundsSingle * gridBoundsSingle * gridBoundsSingle; i++)
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
 
             cellGrid[i] = Mathf.Clamp(i % alternateAmount * 100,0,alternateAmountCap);
@@ -139,7 +168,7 @@ public class FluidSim : MonoBehaviour
     {
         int totalDensity = 0;
         //int highestDensity = 0;
-        for (int i = 0; i < gridBoundsSingle * gridBoundsSingle * gridBoundsSingle; i++)
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
 
             totalDensity += cellGrid[i];
@@ -160,7 +189,8 @@ public class FluidSim : MonoBehaviour
         WaterLogicJob waterLogicJob = new WaterLogicJob()
         {
             originalCellGrid = cellGrid,
-            gridBounds = this.gridBoundsSingle,
+            gridBoundsXZ = this.gridBoundsXZ,
+            gridBoundsY = this.gridBoundsY,
             Gravity = this.Gravity,
             maxDensity = this.maxDensity,
             FlowRate = flowRate,

@@ -373,7 +373,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46bc96983a8ee704c908917b8f711ccf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridBoundsSingle: 3
+  gridBoundsXZ: 32
+  gridBoundsY: 8
   Viscosity: 0.5
   Gravity: -9.8
   flowRate: 1
