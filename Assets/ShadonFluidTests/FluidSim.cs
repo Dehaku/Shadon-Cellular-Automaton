@@ -42,9 +42,13 @@ public class FluidSim : MonoBehaviour
 
     public bool RunSinglethreadSimulation = false;
     public bool RunMultithreadSimulation = false;
-    public bool upDown = false;
-    public bool leftRight = false;
-    public bool forwardBack = false;
+    public bool runAllDirectionsSequentially = false;
+    public bool down = false;
+    public bool up = false;
+    public bool left = false;
+    public bool right = false;
+    public bool forward = false;
+    public bool back = false;
 
     [HideInInspector]
     public int maxDensity = 100;
@@ -260,6 +264,48 @@ public class FluidSim : MonoBehaviour
         
     }
 
+    public int holeDepth = 0;
+    [EButton]
+    public void MakeHole()
+    {
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
+        {
+            int3 pos = to3D(i);
+            if (pos.x > 0 + holeDepth)
+                if (pos.x < (gridBoundsXZ-1) - holeDepth)
+                    if (pos.z > 0 + holeDepth)
+                        if (pos.z < (gridBoundsXZ - 1) - holeDepth)
+                            if (pos.y > 0 + holeDepth)
+                                if (pos.y < gridBoundsY)
+                                    cellGrid[i] = 0;
+        }
+    }
+
+    [EButton]
+    public void MakeFillHole()
+    {
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
+        {
+            int3 pos = to3D(i);
+            if (pos.x > 0 + holeDepth)
+                if (pos.x < (gridBoundsXZ - 1) - holeDepth)
+                    if (pos.z > 0 + holeDepth)
+                        if (pos.z < (gridBoundsXZ - 1) - holeDepth)
+                            if (pos.y > 0 + holeDepth)
+                                if (pos.y < gridBoundsY)
+                                    cellGrid[i] = 100;
+        }
+    }
+
+    [EButton]
+    public void EmptyAllCells()
+    {
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
+        {
+            cellGrid[i] = 0;
+        }
+    }
+
     [EButton]
     public int SumOfDensity()
     {
@@ -331,30 +377,80 @@ public class FluidSim : MonoBehaviour
         cellGrid.CopyFrom(newCellGrid);
 
         */
+        if(runAllDirectionsSequentially)
+        { 
+            
+            for(int i = 0; i < 6; i++)
+            {
+                bool dirDown = false, dirUp = false, dirLeft = false, dirRight = false, dirForward = false, dirBack = false;
+                if (i == 0)
+                    dirDown = true;
+                if (i == 1)
+                    dirUp = true;
+                if (i == 2)
+                    dirLeft = true;
+                if (i == 3)
+                    dirRight = true;
+                if (i == 4)
+                    dirForward = true;
+                if (i == 5)
+                    dirBack = true;
 
+                // 0 = down, 1 = up, 2 = left, 3 = right, 4 = forward, 5 = back
+                WaterLogicJob waterLogicJob = new WaterLogicJob()
+                {
+                    originalCellGrid = cellGrid,
+                    gridBoundsXZ = this.gridBoundsXZ,
+                    gridBoundsY = this.gridBoundsY,
+                    Gravity = this.Gravity,
+                    maxDensity = this.maxDensity,
+                    FlowRate = flowRate,
+                    down = dirDown,
+                    up = dirUp,
+                    left = dirLeft,
+                    right = dirRight,
+                    forward = dirForward,
+                    back = dirBack,
 
+                    outputCellGrid = newCellGrid,
+                };
 
-        
-        WaterLogicJob waterLogicJob = new WaterLogicJob()
+                JobHandle waterLogicJobHandle = waterLogicJob.Schedule(cellGrid.Length, jobsPerThread);
+                waterLogicJobHandle.Complete();
+
+                newCellGrid = waterLogicJob.outputCellGrid;
+                cellGrid.CopyFrom(newCellGrid);
+
+            }
+        }
+
+        if (!runAllDirectionsSequentially)
         {
-            originalCellGrid = cellGrid,
-            gridBoundsXZ = this.gridBoundsXZ,
-            gridBoundsY = this.gridBoundsY,
-            Gravity = this.Gravity,
-            maxDensity = this.maxDensity,
-            FlowRate = flowRate,
-            upDown = this.upDown,
-            leftRight = this.leftRight,
-            forwardBack = this.forwardBack,
+            WaterLogicJob waterLogicJob = new WaterLogicJob()
+            {
+                originalCellGrid = cellGrid,
+                gridBoundsXZ = this.gridBoundsXZ,
+                gridBoundsY = this.gridBoundsY,
+                Gravity = this.Gravity,
+                maxDensity = this.maxDensity,
+                FlowRate = flowRate,
+                down = this.down,
+                up = this.up,
+                left = this.left,
+                right = this.right,
+                forward = this.forward,
+                back = this.back,
 
-            outputCellGrid = newCellGrid,
-        };
+                outputCellGrid = newCellGrid,
+            };
 
-        JobHandle waterLogicJobHandle = waterLogicJob.Schedule(cellGrid.Length, jobsPerThread);
-        waterLogicJobHandle.Complete();
+            JobHandle waterLogicJobHandle = waterLogicJob.Schedule(cellGrid.Length, jobsPerThread);
+            waterLogicJobHandle.Complete();
 
-        newCellGrid = waterLogicJob.outputCellGrid;
-        cellGrid.CopyFrom(newCellGrid);
+            newCellGrid = waterLogicJob.outputCellGrid;
+            cellGrid.CopyFrom(newCellGrid);
+        }
+        
 
         
     }

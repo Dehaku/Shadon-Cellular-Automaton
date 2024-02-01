@@ -17,9 +17,12 @@ public struct WaterLogicJob : IJobParallelFor
     [ReadOnly] public float Gravity;
     [ReadOnly] public int FlowRate;
     [ReadOnly] public int maxDensity;
-    [ReadOnly] public bool upDown;
-    [ReadOnly] public bool leftRight;
-    [ReadOnly] public bool forwardBack;
+    [ReadOnly] public bool down;
+    [ReadOnly] public bool up;
+    [ReadOnly] public bool left;
+    [ReadOnly] public bool right;
+    [ReadOnly] public bool forward;
+    [ReadOnly] public bool back;
 
     [WriteOnly] public NativeArray<int> outputCellGrid; // write only?
 
@@ -65,27 +68,22 @@ public struct WaterLogicJob : IJobParallelFor
         int outputCellDensity = thisCellDensity;
         densityToGive = thisCellDensity;
 
-
-
-
-        if(upDown)
+        if(down)
         {
-            if (thisCellDensity > 0)
+            // If we have some, If not Bottom, If room below us, drain ourselves.
+            if (densityToGive > 0)
             {
-
-                //if (thisCellDensity == 1)
-                  //  Debug.Log("I have 1 at " + to3DID);
-
                 if (y > 0)
                 {
                     if (originalCellGrid[cellDown] < maxDensity)
                     {
-                        outputCellDensity -= FlowRate*1;
+                        outputCellDensity -= FlowRate; 
                         densityToGive -= 1;
                     }
                 }
             }
-            //Debug.LogWarning("Problem is probably here.");
+
+            // If we have room, If we're not Top, if above us has some, fill ourselves.
             if (thisCellDensity < maxDensity)
             {
                 if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
@@ -96,75 +94,121 @@ public struct WaterLogicJob : IJobParallelFor
                     }
                 }
             }
-
-            
-
-            
         }
 
-        
-
-
-
-        if (leftRight)
+        if(up)
         {
-            // Left, // lose to right, gain from left
+            // TODO: Needs data struct with pressure and stuff.
+        }
 
+
+        if (right)
+        {
+            // Flowing Right; lose to right, gain from left
             if (densityToGive > 0)
             {
-                if (x > 0)
+                if (x < gridBoundsXZ - 1)
                 {
-                    int leftCellDensity = originalCellGrid[IX(x - 1, y, z)];
-                    if (leftCellDensity < maxDensity && leftCellDensity < outputCellDensity)
+                    int rightCellDensity = originalCellGrid[IX(x + 1, y, z)];
+                    if (rightCellDensity < maxDensity && rightCellDensity < thisCellDensity)
                     {
                         outputCellDensity -= 1;
                         densityToGive -= 1;
                     }
                 }
             }
-
-
             if (thisCellDensity < maxDensity)
             {
-                if (x < gridBoundsXZ - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
+                if (x > 0) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
                 {
-                    if (originalCellGrid[IX(x+1, y, z)] > outputCellDensity) 
+                    if (originalCellGrid[IX(x-1, y, z)] > thisCellDensity) 
                     {
                         outputCellDensity += 1; // Only affect current cell, read neighbor cells.
                     }
                 }
             }
+        }
 
-            
-
-            /*
-            // Right, // Gain from left, lose to right
-            if (thisCellDensity > 0)
+        if(left)
+        {
+            // Flowing Left; lose to left, gain from right
+            if (densityToGive > 0)
             {
                 if (x > 0)
                 {
                     int leftCellDensity = originalCellGrid[IX(x - 1, y, z)];
-                    if (leftCellDensity < maxDensity && leftCellDensity < outputCellDensity)
+                    if (leftCellDensity < maxDensity && leftCellDensity < thisCellDensity)
                     {
-                        outputCellDensity += 1;
+                        outputCellDensity -= 1;
+                        densityToGive -= 1;
                     }
                 }
             }
             if (thisCellDensity < maxDensity)
             {
-                if (x < gridBounds - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
+                if (x < gridBoundsXZ - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
                 {
-                    if (originalCellGrid[IX(x + 1, y, z)] > outputCellDensity)
+                    if (originalCellGrid[IX(x+1, y, z)] > thisCellDensity) 
                     {
-                        outputCellDensity -= 1; // Only affect current cell, read neighbor cells.
+                        outputCellDensity += 1; // Only affect current cell, read neighbor cells.
                     }
                 }
             }
-            */
+            
+        }
 
+        if (forward)
+        {
+            // Flowing Forward; lose to forward, gain from back
+            if (densityToGive > 0)
+            {
+                if (z < gridBoundsXZ - 1)
+                {
+                    int forwardCellDensity = originalCellGrid[IX(x, y, z + 1)];
+                    if (forwardCellDensity < maxDensity && forwardCellDensity < thisCellDensity)
+                    {
+                        outputCellDensity -= 1;
+                        densityToGive -= 1;
+                    }
+                }
+            }
+            if (thisCellDensity < maxDensity)
+            {
+                if (z > 0) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
+                {
+                    if (originalCellGrid[IX(x, y, z - 1)] > thisCellDensity)
+                    {
+                        outputCellDensity += 1; // Only affect current cell, read neighbor cells.
+                    }
+                }
+            }
+        }
 
-
-
+        if (back)
+        {
+            // Flowing Back; lose to back, gain from forward
+            if (densityToGive > 0)
+            {
+                if (z > 0)
+                {
+                    int backCellDensity = originalCellGrid[IX(x, y, z - 1)];
+                    if (backCellDensity < maxDensity && backCellDensity < thisCellDensity)
+                    {
+                        outputCellDensity -= 1;
+                        densityToGive -= 1;
+                    }
+                }
+            }
+            if (thisCellDensity < maxDensity)
+            {
+                if (z < gridBoundsXZ - 1) // -1 because we aim at the next cell, so it's further than just 'less than bounds'
+                {
+                    if (originalCellGrid[IX(x, y, z + 1)] > thisCellDensity)
+                    {
+                        outputCellDensity += 1; // Only affect current cell, read neighbor cells.
+                    }
+                }
+            }
 
         }
 

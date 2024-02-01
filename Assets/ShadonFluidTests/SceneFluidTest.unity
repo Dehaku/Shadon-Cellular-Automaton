@@ -373,16 +373,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46bc96983a8ee704c908917b8f711ccf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridBoundsXZ: 8
-  gridBoundsY: 32
+  gridBoundsXZ: 32
+  gridBoundsY: 8
   Viscosity: 0.5
   Gravity: -9.8
   flowRate: 1
   RunSinglethreadSimulation: 0
   RunMultithreadSimulation: 1
-  upDown: 1
-  leftRight: 0
-  forwardBack: 0
+  runAllDirectionsSequentially: 1
+  down: 0
+  up: 0
+  left: 0
+  right: 0
+  forward: 0
+  back: 0
   maxDensity: 100
   randomizeOnStart: 0
   randomseededOnStart: 1
@@ -396,6 +400,7 @@ MonoBehaviour:
   yLevelCellFill: 2
   modifyCellXYZ: {x: 7, y: 3, z: 0}
   modifyCellValue: 55
+  holeDepth: 0
 --- !u!4 &589917916
 Transform:
   m_ObjectHideFlags: 0
