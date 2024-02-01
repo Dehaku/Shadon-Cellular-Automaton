@@ -5,13 +5,29 @@ using Unity.Mathematics;
 using Unity.Jobs;
 using UnityEngine;
 using Unity.Collections;
+using System.Diagnostics;
+using Debug = UnityEngine.Debug;
+using Random = UnityEngine.Random;
+
+// Control+K+C to comment all selected, Control+K+U to uncomment all selected.
 
 // Flattening/Unflattening Arrays: https://stackoverflow.com/questions/21596373/compute-shaders-input-3d-array-of-floats
+// Flatten: https://stackoverflow.com/questions/7367770/how-to-flatten-or-index-3d-array-in-1d-array
 // Check out the above for which coordinate system is faster.
 // 3d Volumetric: https://github.com/songshibo/UnityFluidDynamics/tree/main
+// Jos Stam's Navier-Stokes https://www.dgp.toronto.edu/public_user/stam/reality/Research/pdf/GDC03.pdf
 // 
 // GPU: https://github.com/FlanOfFlans/Just-Smoke-No-Mirrors/tree/master
 // Haven't checked yet: https://github.com/J-Ponzo/densityBasedFluidSimulation
+//
+// Render Options
+// Ray marching, but says it's SPH unoptimized, https://github.com/AJTech2002/Smoothed-Particle-Hydrodynamics/tree/main
+//
+// Cellular Automata
+// C++ Cellular Automaton with water pressure, claimed buggy: https://github.com/auneselva/CellularWater/blob/main/Source/UnrealCppManual/Private/WorldController.cpp
+// Cellular Automaton physics: https://w-shadow.com/blog/2009/09/01/simple-fluid-simulation/
+//
+// Toady's article: http://web.archive.org/web/20161205035315/http://www.gamasutra.com/view/feature/3549/interview_the_making_of_dwarf_.php?page=9
 
 
 [BurstCompile]
@@ -34,6 +50,7 @@ public class FluidSim : MonoBehaviour
     public int maxDensity = 100;
 
     public bool randomizeOnStart = false;
+    public bool randomseededOnStart = false;
     public bool iterativeOnStart = false;
     public bool alternateOnStart = false;
     public int alternateAmount = 2;
@@ -42,6 +59,8 @@ public class FluidSim : MonoBehaviour
     NativeArray<int> cellGrid, newCellGrid;
     public int jobsPerThread = 64;
     public bool printDebugTime = false;
+
+    public int randomSeed = 42;
 
 
     int IX(int x, int y, int z)
@@ -92,6 +111,11 @@ public class FluidSim : MonoBehaviour
         Debug.Log("TODO: Move .complete and such into LateUpdate or even next frame.");
         Debug.Log("TODO: Look into turning this into interlinking chunks.");
         Debug.Log("TODO: Figure out how to manage size better, maybe look at voxel datastructures, as they can have way more points.");
+        Debug.Log("TODO: Figure out a way to handle more data than a single int. Can swap it for int4 for four bits of data(density, downPressure,flowDirection((use1-8 for directions, 9/0 up/down)),?), but that's still very limiting.");
+        // Solution for above? https://forum.unity.com/threads/ijobparallelfor-with-nativearray-of-custom-structs-within.938669/
+        // Also for above, references voxel data too. https://forum.unity.com/threads/make-class-a-struct-and-use-nativearrays-in-it.984246/
+        // More job burst struct stuff https://forum.unity.com/threads/job-system-example-starting-with-simple-optimizations-using-a-nativearray-struct.540652/
+        Debug.Log("TODO: Adjust the Jobs per Thread over time, seeking the fastest Millisecond. (Really should just move between 32-256");
         Debug.Log("Awakening fluid sim");
 
         // ================ v Array Definitions v ==================
@@ -102,6 +126,11 @@ public class FluidSim : MonoBehaviour
         if (randomizeOnStart)
         {
             randomizeCells();
+        }
+
+        if(randomseededOnStart)
+        {
+            randomizeCellsSeeded();
         }
 
         if(iterativeOnStart)
@@ -121,14 +150,31 @@ public class FluidSim : MonoBehaviour
     }
 
     
-    
+    [ContextMenu("Randomize")]
     [EButton.BeginHorizontal("Cell Level"), EButton]
     void randomizeCells()
     {
+        randomSeed = (int)System.DateTime.Now.Ticks;
+        Random.InitState(randomSeed);
+
         for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
             //cellGrid[i] = UnityEngine.Random.Range(0, 101);
+            
             cellGrid[i] = UnityEngine.Random.Range(0, 21)*5;
+        }
+    }
+
+    [EButton("RS")]
+    void randomizeCellsSeeded()
+    {
+        Random.InitState(randomSeed);
+
+        for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
+        {
+            //cellGrid[i] = UnityEngine.Random.Range(0, 101);
+            
+            cellGrid[i] = UnityEngine.Random.Range(0, 21) * 5;
         }
     }
 
@@ -154,10 +200,21 @@ public class FluidSim : MonoBehaviour
     [EButton, EButton.EndHorizontal]
     void alternateCells()
     {
+        int tracker = 0;
         for (int i = 0; i < gridBoundsXZ * gridBoundsY * gridBoundsXZ; i++)
         {
-
-            cellGrid[i] = Mathf.Clamp(i % alternateAmount * 100,0,alternateAmountCap);
+            tracker--;
+            if(tracker <= 0)
+            {
+                cellGrid[i] = alternateAmountCap;
+                tracker = alternateAmount;
+            }
+            else
+            {
+                cellGrid[i] = 0;
+            }
+                
+            //cellGrid[i] = Mathf.Clamp(i % alternateAmount * 100,0,alternateAmountCap);
         }
     }
 
@@ -215,8 +272,15 @@ public class FluidSim : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        float timePassed;
-        float time = Time.realtimeSinceStartup;
+        //float timePassed;
+        //float time = Time.realtimeSinceStartup;
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        stopwatch.Start();
+
+
+        
+
+        
 
 
         //if (RunSinglethreadSimulation)
@@ -234,10 +298,14 @@ public class FluidSim : MonoBehaviour
             MultithreadedMadness();
         }
 
-
-        timePassed = Time.realtimeSinceStartup - time;
+        stopwatch.Stop();
+        long elapsedTimeMilliseconds = stopwatch.ElapsedMilliseconds;
+        long elapsedTicks = stopwatch.ElapsedTicks;
+        //print($"Elapsed time in milliseconds: {elapsedTimeMilliseconds}");
         if(printDebugTime)
-            Debug.Log("Time(ms): " + (timePassed*1000f));
+            print($"Elapsed ticks: {elapsedTicks}, 100,000 = ms");
+        //timePassed = Time.realtimeSinceStartup - time;
+        //Debug.Log("Time(ms): " + (timePassed*1000f));
     }
 
     public float GetCellValue(int x, int y, int z)

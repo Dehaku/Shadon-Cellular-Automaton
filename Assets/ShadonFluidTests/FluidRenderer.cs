@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[DefaultExecutionOrder(1)] // Run after FluidSim
 public class FluidRenderer : MonoBehaviour
 {
     public FluidSim fluidSim;

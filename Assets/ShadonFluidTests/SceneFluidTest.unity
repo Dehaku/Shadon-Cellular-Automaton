@@ -373,8 +373,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 46bc96983a8ee704c908917b8f711ccf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridBoundsXZ: 32
-  gridBoundsY: 8
+  gridBoundsXZ: 8
+  gridBoundsY: 32
   Viscosity: 0.5
   Gravity: -9.8
   flowRate: 1
@@ -385,12 +385,14 @@ MonoBehaviour:
   forwardBack: 0
   maxDensity: 100
   randomizeOnStart: 0
+  randomseededOnStart: 1
   iterativeOnStart: 0
-  alternateOnStart: 1
+  alternateOnStart: 0
   alternateAmount: 3
   alternateAmountCap: 100
-  jobsPerThread: 64
-  printDebugTime: 1
+  jobsPerThread: 128
+  printDebugTime: 0
+  randomSeed: 137390076
 --- !u!4 &589917916
 Transform:
   m_ObjectHideFlags: 0

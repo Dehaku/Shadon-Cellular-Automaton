@@ -6,6 +6,8 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
+// Burst Manual; https://docs.unity3d.com/Packages/com.unity.burst@1.2/manual/index.html
+
 [BurstCompile]
 public struct WaterLogicJob : IJobParallelFor
 {
@@ -55,11 +57,7 @@ public struct WaterLogicJob : IJobParallelFor
         y = to3DID[1];
         z = to3DID[2];
 
-        // Fix border cases eventually.
-        
-        
-
-        thisCell = index; // Replace thisCell with a reference to the cell itself?
+        thisCell = index; // This could probably be cleaner.
         thisCellDensity = originalCellGrid[thisCell];
         cellUp = IX(x, y + 1, z);
         cellDown = IX(x, y - 1, z);
@@ -83,7 +81,7 @@ public struct WaterLogicJob : IJobParallelFor
                     }
                 }
             }
-
+            //Debug.LogWarning("Problem is probably here.");
             if (thisCellDensity < maxDensity)
             {
                 if (y < gridBoundsY - 1) // -1 because we aim at the cell above us, so it's further than just 'less than bounds'
